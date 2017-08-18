@@ -1,70 +1,69 @@
 package db;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
- 
+
 import model.Restaurant;
- 
+
 import org.bson.Document;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
- 
+
 import yelp.YelpAPI;
- 
+
 import com.mongodb.Block;
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOptions;
- 
+
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.regex;
 
-public class MongoDBConnection implements DBConnection{
+public class MongoDBConnection implements DBConnection {
 	private static final int MAX_RECOMMENDED_RESTAURANTS = 10;
-	 
-    private MongoClient mongoClient;
-    private MongoDatabase db;
- 
-    public MongoDBConnection() {
-   	 // Connects to local mongodb server.
-   	 mongoClient = new MongoClient();
-   	 db = mongoClient.getDatabase(DBUtil.DB_NAME);
- 
-    }
 
+	private MongoClient mongoClient;
+	private MongoDatabase db;
+
+	public MongoDBConnection() {
+		// Connects to local mongodb server.
+		mongoClient = new MongoClient();
+		db = mongoClient.getDatabase(DBUtil.DB_NAME);
+
+	}
 
 	@Override
 	public void close() {
 		if (mongoClient != null) {
-	   		 mongoClient.close();
-	   	 }	
+			mongoClient.close();
+		}
 	}
 
 	@Override
 	public void setVisitedRestaurants(String userId, List<String> businessIds) {
 		db.getCollection("users").updateOne(new Document("user_id", userId),
-	   			 new Document("$pushAll", new Document("visited", businessIds)));
+				new Document("$pushAll", new Document("visited", businessIds)));
 	}
 
 	@Override
 	public void unsetVisitedRestaurants(String userId, List<String> businessIds) {
 		db.getCollection("users").updateOne(new Document("user_id", userId),
-	   			 new Document("$pullAll", new Document("visited", businessIds)));
+				new Document("$pullAll", new Document("visited", businessIds)));
 	}
 
 	@Override
 	public Set<String> getVisitedRestaurants(String userId) {
 		Set<String> set = new HashSet<>();
 		// db.users.find({user_id:1111})
-		FindIterable<Document> iterable = db.getCollection("users").find(
-				eq("user_id", userId));
+		FindIterable<Document> iterable = db.getCollection("users").find(eq("user_id", userId));
 		if (iterable.first().containsKey("visited")) {
-	   		List<String> list = (List<String>) iterable.first().get("visited");
+			List<String> list = (List<String>) iterable.first().get("visited");
 			set.addAll(list);
-	   	}
+		}
 		return set;
 	}
 
@@ -83,7 +82,34 @@ public class MongoDBConnection implements DBConnection{
 
 	@Override
 	public JSONArray recommendRestaurants(String userId) {
-		// TODO Auto-generated method stub
+		try {
+			Set<String> visitedRestaurants = getVisitedRestaurants(userId);// step
+																			// 1
+			Set<String> allCategories = new HashSet<>();// why hashSet? //step 2
+			for (String restaurant : visitedRestaurants) {
+				allCategories.addAll(getCategories(restaurant));
+			}
+			Set<String> allRestaurants = new HashSet<>();// step 3
+			for (String category : allCategories) {
+				Set<String> set = getBusinessId(category);
+				allRestaurants.addAll(set);
+			}
+			Set<JSONObject> diff = new HashSet<>();// step 4
+			int count = 0;
+			for (String businessId : allRestaurants) {
+				// Perform filtering
+				if (!visitedRestaurants.contains(businessId)) {
+					diff.add(getRestaurantsById(businessId, false));
+					count++;
+					if (count >= MAX_RECOMMENDED_RESTAURANTS) {
+						break;
+					}
+				}
+			}
+			return new JSONArray(diff);
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
 		return null;
 	}
 
@@ -104,16 +130,15 @@ public class MongoDBConnection implements DBConnection{
 	@Override
 	public Set<String> getBusinessId(String category) {
 		Set<String> set = new HashSet<>();
-        // similar to LIKE %category% in MySQL
- FindIterable<Document> iterable = db.getCollection("restaurants").find(
-		 regex("categories", category));
- iterable.forEach(new Block<Document>() {
-	 @Override
-	 public void apply(final Document document) {
-		 set.add(document.getString("business_id"));
-	 }
- });
- return set;
+		// similar to LIKE %category% in MySQL
+		FindIterable<Document> iterable = db.getCollection("restaurants").find(regex("categories", category));
+		iterable.forEach(new Block<Document>() {
+			@Override
+			public void apply(final Document document) {
+				set.add(document.getString("business_id"));
+			}
+		});
+		return set;
 	}
 
 	@Override
@@ -174,17 +199,22 @@ public class MongoDBConnection implements DBConnection{
 		return null;
 	}
 
-
 	@Override
 	public Boolean verifyLogin(String userId, String password) {
-		// TODO Auto-generated method stub
-		return null;
+		FindIterable<Document> iterable = db.getCollection("users").find(
+	   			 new Document("user_id", userId));
+	   	 Document document = iterable.first();
+	   	 return document.getString("password").equals(password);
 	}
 
 	@Override
 	public String getFirstLastName(String userId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+		FindIterable<Document> iterable = db.getCollection("users").find(
+	   			 new Document("user_id", userId));
+	   	 Document document = iterable.first();
+	   	 String firstName = document.getString("first_name");
+	   	 String lastName = document.getString("last_name");
+	   	 return firstName + " " + lastName;
 
+	}
 }

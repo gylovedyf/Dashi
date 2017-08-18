@@ -4,7 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-
+//import the initial schema of data base, define table and column 
 public class DBYelpImport {
 	public static void main(String[] args) {
 		try {

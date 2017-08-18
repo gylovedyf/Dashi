@@ -14,7 +14,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import db.DBConnection;
+import db.MongoDBConnection;
 import db.MySQLDBConnection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 /**
  * Servlet implementation class SearchRestaurants
@@ -22,7 +26,7 @@ import db.MySQLDBConnection;
 @WebServlet("/restaurants")
 public class SearchRestaurants extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	DBConnection connection = new MySQLDBConnection();
+	private static DBConnection connection = new MySQLDBConnection();
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -36,6 +40,7 @@ public class SearchRestaurants extends HttpServlet {
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
 	 *      response)
 	 */
+	private static final Logger LOGGER = Logger.getLogger(SearchRestaurants.class.getName());
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
@@ -47,6 +52,7 @@ public class SearchRestaurants extends HttpServlet {
 			String userId = "1111";
 			double lat = Double.parseDouble(request.getParameter("lat"));
 			double lon = Double.parseDouble(request.getParameter("lon"));
+			LOGGER.log(Level.INFO, "lat:" + lat + ",lon:" + lon);
 			array = connection.searchRestaurants(userId, lat, lon, term);
 		}
 		RpcParser.writeOutput(response, array);

@@ -7,7 +7,7 @@ import com.mongodb.client.model.IndexOptions;
 import org.bson.Document;
  
 import java.text.ParseException;
- 
+ // create users and restaurants collection(Table) and insert one document into each collection. 
 public class MongoDBImport {
 	public static void main(String[] args) throws ParseException {
 		MongoClient mongoClient = new MongoClient();

@@ -76,7 +76,7 @@ public class Restaurant {
 	   	 return str.replace("\"", "\\\"").replace("/", " or ");
 	    }
 
-	    public static String jsonArrayToString(JSONArray array) {
+	public static String jsonArrayToString(JSONArray array) {
 	   	 StringBuilder sb = new StringBuilder();
 	   	 try {
 	   		 for (int i = 0; i < array.length(); i++) {
